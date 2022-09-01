@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2", "wheel"]
 
 [project]
 name = "best-first-search"
@@ -24,4 +24,4 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 example = ["networkx>=2.8"]
-ci = ["pylint==2.15.0", "mypy==0.971", "setuptools-scm", "pytest < 7.0.0"]
+ci = ["pylint==2.15.0", "mypy < 1.0", "setuptools-scm", "pytest < 7.0.0", "isort < 6.0"]
