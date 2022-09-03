@@ -1,5 +1,7 @@
 # Best first search, using pre-sorted iterators
 
+![sample_astar](assets/sample_astar.gif)
+
 It finds the minimum cost path on a graph, where the cost of a path is linear sum of each edge's weight in it. To call the function, the followings are required:
 
 - termination condition

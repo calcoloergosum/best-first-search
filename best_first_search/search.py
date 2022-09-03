@@ -1,51 +1,15 @@
 """Best first search with pre-sorted iterator"""
-from typing import Any, Callable, Dict, Generic, Iterator, List, Optional, Protocol, Tuple, TypeVar
-from heapq import heappop, heappush
+from typing import Callable, Dict, Iterator, Optional, Tuple
+from enum import IntEnum
 
-Node = TypeVar("Node")
-Cost = TypeVar("Cost", bound="SupportsComparison")
-
-
-class SupportsComparison(Protocol):
-    """Comparable protocol"""
-    def __eq__(self, other: Any) -> bool: ...
-    def __lt__(self: Cost, other: Cost) -> bool: ...
-    def __gt__(self: Cost, other: Cost) -> bool: ...
-    def __le__(self: Cost, other: Cost) -> bool: ...
-    def __ge__(self: Cost, other: Cost) -> bool: ...
+from .heap import Cost, LazyHeap, Node, SortedIterator
 
 
-SortedIterator = Iterator[Tuple[Cost, Node]]
-
-class LazyHeap(Generic[Cost, Node]):
-    """
-    Lazily evaluated min-heap that pertains sorted iterators instead of actual items.
-    """
-    def __init__(self) -> None:
-        self.heap: List[Tuple[Cost, int, Node, SortedIterator[Cost, Node]]] = []
-        self._index: int = 0  # in case of the same cost, force FIFO
-
-    def push(self, sorted_iterator: SortedIterator[Cost, Node]) -> None:
-        """Push items to this heap"""
-        try:
-            cost, item = next(sorted_iterator)
-            heappush(self.heap, (cost, self._index, item, sorted_iterator))
-            self._index += 1
-        except StopIteration:
-            pass
-
-    def pop(self) -> Optional[Tuple[Cost, Node]]:
-        """Pop the minimum cost item from this heap"""
-        while self.heap:
-            cost, _, node, rest = heappop(self.heap)
-            try:
-                cost_next, node_next = next(rest)
-                heappush(self.heap, (cost_next, self._index, node_next, rest))
-                self._index += 1
-            except StopIteration:
-                pass
-            return (cost, node)
-        return None
+class Signal(IntEnum):
+    """Human readable signal"""
+    CONTINUE = 0
+    SOLUTION_FOUND = 1
+    HEAP_EXHAUSTED = 2
 
 
 def best_first_search(
@@ -55,6 +19,7 @@ def best_first_search(
     is_solution: Callable[[Node], bool],
     cost_add: Callable[[Cost, Cost], Cost],
     memoize_bound: bool = True,
+    n_thread: int = 0,
 ) -> Iterator[Tuple[Cost, Tuple[Node, ...]]]:
     """
     Best first search function, as a minimization problem.
@@ -68,30 +33,36 @@ def best_first_search(
         memoize_bound (bool):
             Prune search by using known bound to reach the node.
             When state space is known to be a tree, set this to `False` to save some memory.
+        n_thread (int):
+            Number of python threads to be used.
+            It can be useful if `sorted_iterator` involves heavy external function call.
+            When given 0, runs in main thread.
 
     Yields:
         Iterator[Tuple[Cost, Node]]: found solutions
     """
     if memoize_bound:
         node2known_cost: Dict[Node, Optional[Cost]] = {}
-    heap: LazyHeap[Cost, Tuple[Node, ...]] = LazyHeap()
+    heap: LazyHeap[Cost, Tuple[Node, ...]] = LazyHeap.new(n_thread)
     heap.push(iter([(initial_cost, (initial_node,))]))
 
     def _iterate(cost: Cost, nodes: Tuple[Node, ...]) -> SortedIterator:
         for _cost, _node in get_sorted_neighbor_iterator(nodes[-1]):
             yield cost_add(cost, _cost), (*nodes, _node)
 
-    while result := heap.pop():
+    while True:
+        heapitem = heap.pop()
         # No more to search
-        if result is None:
+        if heapitem is None:
             return
-        cost, nodes = result
+        cost, nodes = heapitem
 
         if memoize_bound:
             if (
                 (cost_found := node2known_cost.get(nodes[-1], None)) is not None
                 and cost_found <= cost
             ):
+                # There was a better path to this node
                 continue
             node2known_cost[nodes[-1]] = cost
 
@@ -101,10 +72,4 @@ def best_first_search(
             continue
 
         # solution found!
-        yield cost, nodes
-    return
-
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+        yield (cost, nodes)

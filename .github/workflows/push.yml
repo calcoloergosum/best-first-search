@@ -29,7 +29,11 @@ jobs:
           pip check
       - name: Static check
         run: |
-          tests/static.sh          
+          tests/static.sh
         shell: bash
       - name: Test with pytest
-        run: pytest -x -s tests/
+        run: |
+          tests/dynamic.sh
+      - name: Upload codecov
+        run: |
+          codecov --token=${{ secrets.CODECOV_TOKEN }}
