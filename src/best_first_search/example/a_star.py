@@ -45,6 +45,8 @@ def a_star(
     Returns:
         float: cost of the found path
         Tuple[Tuple[int, int], ...]: list of nodes along the found path
+
+        None when a solution is not found
     """
     def is_solution(n):
         return n == end
@@ -67,8 +69,7 @@ def a_star_debug(
     end: Tuple[int, int],
     n_thread: int = 0,
 ) -> List[Tuple[Tuple[int, int], Tuple[int, int]]]:  # pragma: no cover
-    """Same as a_star, but return list of edges in search order
-        only valid when debug=True"""
+    """Same as a_star, but return list of edges in search order"""
     edges = []
 
     def is_solution(n: Tuple[int, int]) -> bool:
