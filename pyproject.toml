@@ -21,7 +21,10 @@ dependencies = []
 dynamic = ["version"]
 
 [tool.setuptools_scm]
+[tool.setuptools.packages.find]
+include = ["best_first_search"]
 
 [project.optional-dependencies]
 example = ["networkx>=2.8"]
-ci = ["pylint==2.15.0", "mypy < 1.0", "setuptools-scm", "pytest < 7.0.0", "isort < 6.0"]
+ci = ["pylint==2.15.0", "mypy < 1.0", "setuptools-scm", "pytest < 7.0.0", "isort < 6.0", "pytest-cov", "codecov"]
+visualize = ["matplotlib"]
