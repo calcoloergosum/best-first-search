@@ -72,22 +72,24 @@ def _impossible_graph(size: int) -> nx.Graph:
     return graph
 
 
-@pytest.mark.parametrize("size", range(10, 12))
+@pytest.mark.parametrize("size", range(20, 21))
 def test_singlethread(size: int) -> None:
     """Single threaded test"""
     graph = _grid_graph(size)
-    cost, solution = a_star(graph, (0, 0), (size, size), n_thread=0)
+    cost, _, solution = a_star(graph, (0, 0), (size, size), n_thread=0)
     assert abs(2 * size - 9 - cost) < 1e-7
-    assert len(solution) == 2 + int(cost)
+    assert len(solution) == 1 + round(cost)
+    assert solution[-1] == (size, size)
 
 
-@pytest.mark.parametrize("size", range(20, 22))
+@pytest.mark.parametrize("size", range(20, 21))
 def test_multithread(size: int) -> None:
     """Multi threaded test"""
     graph = _grid_graph(size)
-    cost, solution = a_star(graph, (0, 0), (size, size), n_thread=4)
+    cost, _, solution = a_star(graph, (0, 0), (size, size), n_thread=4)
     assert abs(2 * size - 9 - cost) < 1e-7
-    assert len(solution) == 2 + int(cost)
+    assert len(solution) == 1 + round(cost)
+    assert solution[-1] == (size, size)
 
 
 @pytest.mark.parametrize("size", range(10, 11))

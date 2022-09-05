@@ -1,15 +1,8 @@
 """Best first search with pre-sorted iterator"""
 from typing import Callable, Dict, Iterator, Optional, Tuple
-from enum import IntEnum
+import itertools
 
 from .heap import Cost, LazyHeap, Node, SortedIterator
-
-
-class Signal(IntEnum):
-    """Human readable signal"""
-    CONTINUE = 0
-    SOLUTION_FOUND = 1
-    HEAP_EXHAUSTED = 2
 
 
 def best_first_search(
@@ -19,8 +12,9 @@ def best_first_search(
     is_solution: Callable[[Node], bool],
     cost_add: Callable[[Cost, Cost], Cost],
     memoize_bound: bool = True,
+    n_max_iters: Optional[int] = None,
     n_thread: int = 0,
-) -> Iterator[Tuple[Cost, Tuple[Node, ...]]]:
+) -> Iterator[Tuple[Cost, int, Tuple[Node, ...]]]:
     """
     Best first search function, as a minimization problem.
 
@@ -39,32 +33,39 @@ def best_first_search(
             When given 0, runs in main thread.
 
     Yields:
-        Iterator[Tuple[Cost, Node]]: found solutions
+        Iterator[Tuple[Cost, int, Tuple[Node, ...]]]: cost, steps, solution
     """
     if memoize_bound:
-        node2known_cost: Dict[Node, Optional[Cost]] = {}
+        node2best_cost: Dict[Node, Optional[Cost]] = {}
     heap: LazyHeap[Cost, Tuple[Node, ...]] = LazyHeap.new(n_thread)
     heap.push(iter([(initial_cost, (initial_node,))]))
 
     def _iterate(cost: Cost, nodes: Tuple[Node, ...]) -> SortedIterator:
         for _cost, _node in get_sorted_neighbor_iterator(nodes[-1]):
-            yield cost_add(cost, _cost), (*nodes, _node)
+            cost_total = cost_add(cost, _cost)
+            if memoize_bound:
+                if (
+                    (best_cost := node2best_cost.get(_node, None)) is not None
+                    and best_cost <= cost_total
+                ):
+                    # There was a better path to this node
+                    continue
+                node2best_cost[_node] = cost_total
+            yield cost_total, (*nodes, _node)
 
-    while True:
+    for n_iter in itertools.count():
         heapitem = heap.pop()
+
+        # Too many iterations
+        if n_max_iters is not None and n_iter >= n_max_iters:
+            heap.stop()
+            return
+
         # No more to search
         if heapitem is None:
+            heap.stop()
             return
         cost, nodes = heapitem
-
-        if memoize_bound:
-            if (
-                (cost_found := node2known_cost.get(nodes[-1], None)) is not None
-                and cost_found <= cost
-            ):
-                # There was a better path to this node
-                continue
-            node2known_cost[nodes[-1]] = cost
 
         # if not solution, continue searching
         if not is_solution(nodes[-1]):
@@ -72,4 +73,4 @@ def best_first_search(
             continue
 
         # solution found!
-        yield (cost, nodes)
+        yield (cost, n_iter, nodes)
