@@ -1,4 +1,4 @@
-name: On pull request
+name: python3
 
 on: [pull_request]
 
