@@ -33,7 +33,7 @@ def a_star(
     start: Tuple[int, int],
     end: Tuple[int, int],
     n_thread: int = 0,
-) -> Optional[Tuple[float, Tuple[Tuple[int, int], ...]]]:
+) -> Optional[Tuple[float, int, Tuple[Tuple[int, int], ...]]]:
     """Find shortest path from `start` to `end`.
 
     Args:
